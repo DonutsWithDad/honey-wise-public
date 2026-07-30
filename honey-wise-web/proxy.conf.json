@@ -1,0 +1,20 @@
+{
+  "/Users": {
+    "target": "http://localhost:20000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/Recipes": {
+    "target": "http://localhost:20000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/Ingredients": {
+    "target": "http://localhost:20000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

@@ -1,0 +1,186 @@
+<div class="recipe-form-page">
+  <mat-card class="recipe-form-card" appearance="outlined">
+    @if (submitting() || loading()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    <mat-card-header>
+      <mat-card-title>{{ isEdit() ? 'Edit recipe' : 'New recipe' }}</mat-card-title>
+      <mat-card-subtitle>Honey, water and yeast are required</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="recipe-form">
+        <!-- Details -->
+        <mat-form-field appearance="outline">
+          <mat-label>Recipe name</mat-label>
+          <input matInput formControlName="name" />
+          @if (form.controls.name.hasError('required')) {
+            <mat-error>Name is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="2"></textarea>
+        </mat-form-field>
+
+        <!-- Core ingredients -->
+        <h3 class="section-heading">Core ingredients</h3>
+
+        <div class="core-row">
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>Honey type</mat-label>
+            <input matInput formControlName="honeyType" [matAutocomplete]="honeyAuto" />
+            <mat-autocomplete #honeyAuto="matAutocomplete">
+              @for (opt of honeyTypes(); track opt) {
+                <mat-option [value]="opt">{{ opt }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (form.controls.honeyType.hasError('required')) {
+              <mat-error>Honey is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="weight">
+            <mat-label>Weight</mat-label>
+            <input matInput type="number" min="0" step="any" formControlName="honeyWeight" />
+            @if (form.controls.honeyWeight.hasError('required')) {
+              <mat-error>Required</mat-error>
+            } @else if (form.controls.honeyWeight.hasError('min')) {
+              <mat-error>Must be ≥ 0</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="unit">
+            <mat-label>Unit</mat-label>
+            <mat-select formControlName="honeyUnit">
+              @for (unit of units; track unit) {
+                <mat-option [value]="unit">{{ unit }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="core-row">
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>Water type</mat-label>
+            <input matInput formControlName="waterType" [matAutocomplete]="waterAuto" />
+            <mat-autocomplete #waterAuto="matAutocomplete">
+              @for (opt of waterTypes(); track opt) {
+                <mat-option [value]="opt">{{ opt }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (form.controls.waterType.hasError('required')) {
+              <mat-error>Water is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>Yeast type</mat-label>
+            <input matInput formControlName="yeastType" [matAutocomplete]="yeastAuto" />
+            <mat-autocomplete #yeastAuto="matAutocomplete">
+              @for (opt of yeastTypes(); track opt) {
+                <mat-option [value]="opt">{{ opt }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (form.controls.yeastType.hasError('required')) {
+              <mat-error>Yeast is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Additional ingredients -->
+        <h3 class="section-heading">Additional ingredients</h3>
+        <p class="section-hint">Spices, fruits, nutrients, stabilizers — anything else.</p>
+
+        <div formArrayName="ingredients">
+          @for (row of ingredients.controls; track row; let i = $index) {
+            <div class="ingredient-row" [formGroupName]="i">
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="name" [matAutocomplete]="ingAuto" />
+                <mat-autocomplete #ingAuto="matAutocomplete">
+                  @for (opt of presetsForCategory(row.controls.category.value); track opt) {
+                    <mat-option [value]="opt">{{ opt }}</mat-option>
+                  }
+                </mat-autocomplete>
+                @if (row.controls.name.hasError('required')) {
+                  <mat-error>Name is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="category">
+                <mat-label>Category</mat-label>
+                <mat-select formControlName="category">
+                  @for (cat of categories(); track cat) {
+                    <mat-option [value]="cat">{{ cat }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Quantity</mat-label>
+                <input matInput formControlName="quantity" placeholder="e.g. 1 tsp" />
+              </mat-form-field>
+
+              <button
+                mat-icon-button
+                type="button"
+                class="row-remove"
+                (click)="removeIngredient(i)"
+                aria-label="Remove ingredient"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <button mat-stroked-button type="button" (click)="addIngredient()">
+          <mat-icon>add</mat-icon>
+          Add ingredient
+        </button>
+
+        <!-- Directions -->
+        <h3 class="section-heading">Directions</h3>
+
+        <div formArrayName="steps">
+          @for (step of steps.controls; track step; let i = $index) {
+            <div class="step-row">
+              <span class="step-number">{{ i + 1 }}</span>
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Step {{ i + 1 }}</mat-label>
+                <textarea matInput [formControlName]="i" rows="2"></textarea>
+                @if (step.hasError('required')) {
+                  <mat-error>Step text is required</mat-error>
+                }
+              </mat-form-field>
+              <button
+                mat-icon-button
+                type="button"
+                class="row-remove"
+                (click)="removeStep(i)"
+                aria-label="Remove step"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <button mat-stroked-button type="button" (click)="addStep()">
+          <mat-icon>add</mat-icon>
+          Add step
+        </button>
+
+        <div class="form-actions">
+          <a mat-button routerLink="/recipes">Cancel</a>
+          <button mat-flat-button type="submit" [disabled]="submitting()">
+            {{ isEdit() ? 'Save changes' : 'Create recipe' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

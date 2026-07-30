@@ -1,0 +1,21 @@
+<section class="home">
+  <mat-card class="home-hero" appearance="outlined">
+    <mat-card-content>
+      <mat-icon class="home-hero-icon">hive</mat-icon>
+      <h1>HoneyWise</h1>
+      <p>Your companion for crafting and tracking mead.</p>
+
+      @if (isAuthenticated()) {
+        <p class="home-signed-in">
+          <mat-icon>check_circle</mat-icon>
+          You're signed in.
+        </p>
+      } @else {
+        <div class="home-actions">
+          <a mat-flat-button routerLink="/login">Sign in</a>
+          <a mat-stroked-button routerLink="/register">Create account</a>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</section>

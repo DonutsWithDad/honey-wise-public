@@ -1,0 +1,87 @@
+// Angular Material (Google's Material Design) global theme.
+// Uses the Material 20 `mat.theme()` API with the built-in Azure/Blue palettes.
+@use '@angular/material' as mat;
+
+// Light is the default appearance. The `ThemeService` toggles `<html class="dark">`
+// (defaulting to the OS preference on first visit) which swaps in the dark palette
+// below. Typography/density only need declaring once, on the light (base) theme.
+html {
+  color-scheme: light;
+
+  @include mat.theme((
+    color: (
+      theme-type: light,
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+html.dark {
+  color-scheme: dark;
+
+  @include mat.theme((
+    color: (
+      theme-type: dark,
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+  ));
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+// Shared layout for the login / create-account screens.
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+
+  mat-card-header {
+    margin-top: 8px;
+  }
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.auth-form mat-form-field {
+  width: 100%;
+}
+
+.auth-submit {
+  margin-top: 8px;
+  height: 48px;
+}
+
+.auth-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+

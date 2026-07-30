@@ -1,0 +1,18 @@
+.session-expired-icon {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 4px;
+
+  mat-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 56px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.session-expired-actions {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 16px;
+}

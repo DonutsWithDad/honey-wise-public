@@ -1,0 +1,81 @@
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 8px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+
+  // Icon buttons default to their own icon-color token, which doesn't track the
+  // toolbar's foreground and turns near-invisible on the bar. Force every button
+  // and icon in the toolbar to use the toolbar's text color instead.
+  .mat-mdc-icon-button,
+  .mat-mdc-button {
+    color: inherit;
+    --mdc-icon-button-icon-color: currentColor;
+    --mat-icon-button-icon-color: currentColor;
+  }
+
+  .mat-icon {
+    color: inherit;
+  }
+}
+
+// Material's dark primary is a pale blue; using it as a full-width app bar reads
+// as an odd bright band. In dark mode drop the toolbar onto a dark surface so it
+// blends with the rest of the shell and its light icons stay legible.
+html.dark .app-toolbar {
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.25rem;
+}
+
+.app-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+// The sidenav container fills the space below the sticky toolbar (64px tall).
+.app-shell {
+  height: calc(100vh - 64px);
+  background: var(--mat-sys-surface);
+}
+
+.app-sidenav {
+  width: 240px;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  padding-top: 8px;
+}
+
+.app-content {
+  display: block;
+  box-sizing: border-box;
+  padding: 24px 16px;
+}
+
+// The plain (unauthenticated) content region needs its own min-height since it
+// isn't inside the sidenav container.
+.app-content--plain {
+  min-height: calc(100vh - 64px);
+}
+
+// The non-interactive name row at the top of the profile menu.
+.app-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  margin-bottom: 4px;
+}

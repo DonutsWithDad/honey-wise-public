@@ -1,0 +1,62 @@
+<div class="auth-page">
+  <mat-card class="auth-card" appearance="outlined">
+    @if (submitting()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    <mat-card-header>
+      <mat-card-title>Welcome back</mat-card-title>
+      <mat-card-subtitle>Sign in to your HoneyWise account</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Username</mat-label>
+          <input matInput formControlName="userName" autocomplete="username" />
+          <mat-icon matPrefix>person</mat-icon>
+          @if (form.controls.userName.hasError('required')) {
+            <mat-error>Username is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="togglePassword()"
+            [attr.aria-label]="hidePassword() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.password.hasError('required')) {
+            <mat-error>Password is required</mat-error>
+          }
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          type="submit"
+          class="auth-submit"
+          [disabled]="submitting()"
+        >
+          Sign in
+        </button>
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions class="auth-alt">
+      <span>New to HoneyWise?</span>
+      <a mat-button routerLink="/register">Create an account</a>
+    </mat-card-actions>
+  </mat-card>
+</div>

@@ -1,0 +1,20 @@
+<div class="auth-page">
+  <mat-card class="auth-card" appearance="outlined">
+    <mat-card-header>
+      <div class="session-expired-icon">
+        <mat-icon>hourglass_disabled</mat-icon>
+      </div>
+      <mat-card-title>Your session expired</mat-card-title>
+      <mat-card-subtitle>
+        You were signed out after a period of inactivity to keep your account secure.
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-actions class="session-expired-actions">
+      <a mat-flat-button routerLink="/login">
+        <mat-icon>login</mat-icon>
+        Sign in again
+      </a>
+    </mat-card-actions>
+  </mat-card>
+</div>

@@ -1,0 +1,117 @@
+<div class="profile-page">
+  <header class="profile-header">
+    <h1>Profile</h1>
+    <p>Manage your account details and preferences.</p>
+  </header>
+
+  <!-- Username -->
+  <mat-card class="profile-card" appearance="outlined">
+    @if (savingName()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    <mat-card-header>
+      <mat-card-title>Username</mat-card-title>
+      <mat-card-subtitle>The name you sign in and appear with</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="usernameForm" (ngSubmit)="saveUsername()" class="profile-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Username</mat-label>
+          <input matInput formControlName="userName" autocomplete="username" />
+          <mat-icon matPrefix>person</mat-icon>
+          @if (usernameForm.controls.userName.hasError('required')) {
+            <mat-error>Username is required</mat-error>
+          } @else if (usernameForm.controls.userName.hasError('minlength')) {
+            <mat-error>Username must be at least 3 characters</mat-error>
+          }
+        </mat-form-field>
+        <button mat-flat-button type="submit" [disabled]="savingName()">Save username</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Password -->
+  <mat-card class="profile-card" appearance="outlined">
+    @if (savingPassword()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    <mat-card-header>
+      <mat-card-title>Password</mat-card-title>
+      <mat-card-subtitle>Choose a strong password you don't use elsewhere</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" class="profile-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Current password</mat-label>
+          <input
+            matInput
+            [type]="hideCurrent() ? 'password' : 'text'"
+            formControlName="currentPassword"
+            autocomplete="current-password"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="hideCurrent.set(!hideCurrent())"
+            [attr.aria-label]="hideCurrent() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hideCurrent() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (passwordForm.controls.currentPassword.hasError('required')) {
+            <mat-error>Current password is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>New password</mat-label>
+          <input
+            matInput
+            [type]="hideNew() ? 'password' : 'text'"
+            formControlName="newPassword"
+            autocomplete="new-password"
+          />
+          <mat-icon matPrefix>lock_reset</mat-icon>
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="hideNew.set(!hideNew())"
+            [attr.aria-label]="hideNew() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hideNew() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (passwordForm.controls.newPassword.hasError('required')) {
+            <mat-error>New password is required</mat-error>
+          } @else if (passwordForm.controls.newPassword.hasError('minlength')) {
+            <mat-error>Password must be at least 6 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button type="submit" [disabled]="savingPassword()">
+          Change password
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Plan -->
+  <mat-card class="profile-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Plan</mat-card-title>
+      <mat-card-subtitle>Your current subscription</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="profile-plan">
+        <div class="profile-plan-current">
+          <mat-icon>workspace_premium</mat-icon>
+          <span class="profile-plan-name">{{ plan() | titlecase }}</span>
+        </div>
+        <button mat-stroked-button disabled matTooltip="Plan upgrades are coming soon">
+          Upgrade — coming soon
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

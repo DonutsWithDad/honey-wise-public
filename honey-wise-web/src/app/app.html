@@ -1,0 +1,89 @@
+<mat-toolbar class="app-toolbar">
+  @if (isAuthenticated()) {
+    <button
+      mat-icon-button
+      class="app-menu-toggle"
+      (click)="toggleSidenav()"
+      aria-label="Toggle navigation"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
+  }
+
+  <a routerLink="/" class="app-brand">
+    <mat-icon>hive</mat-icon>
+    <span>HoneyWise</span>
+  </a>
+
+  <span class="app-toolbar-spacer"></span>
+
+  <button
+    mat-icon-button
+    (click)="toggleTheme()"
+    [matTooltip]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+    [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+  >
+    <mat-icon>{{ isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+  </button>
+
+  @if (isAuthenticated()) {
+    <button
+      mat-icon-button
+      [matMenuTriggerFor]="profileMenu"
+      matTooltip="Account"
+      aria-label="Open account menu"
+    >
+      <mat-icon>account_circle</mat-icon>
+    </button>
+
+    <mat-menu #profileMenu="matMenu">
+      <div class="app-profile-header">
+        <mat-icon>account_circle</mat-icon>
+        <span>{{ displayName() }}</span>
+      </div>
+      <a mat-menu-item routerLink="/profile">
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Sign out</span>
+      </button>
+    </mat-menu>
+  } @else {
+    <a mat-button routerLink="/login">Sign in</a>
+    <a mat-flat-button routerLink="/register">Create account</a>
+  }
+</mat-toolbar>
+
+@if (isAuthenticated()) {
+  <mat-sidenav-container class="app-shell">
+    <mat-sidenav
+      class="app-sidenav"
+      [opened]="sidenavOpen()"
+      [mode]="'side'"
+      (closedStart)="sidenavOpen.set(false)"
+    >
+      <mat-nav-list>
+        <a
+          mat-list-item
+          routerLink="/recipes"
+          routerLinkActive
+          #recipesLink="routerLinkActive"
+          [activated]="recipesLink.isActive"
+        >
+          <mat-icon matListItemIcon>menu_book</mat-icon>
+          <span matListItemTitle>Recipe Book</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="app-content">
+      <router-outlet />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+} @else {
+  <main class="app-content app-content--plain">
+    <router-outlet />
+  </main>
+}
