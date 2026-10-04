@@ -18,16 +18,28 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { RecipeService } from '../../core/recipe.service';
+import { LayoutService } from '../../core/layout.service';
 import { RecipeSummary } from '../../core/recipe.models';
 import { ConfirmDialog, ConfirmDialogData } from './confirm-dialog';
 
 /** Which layout the recipe list is rendered in. */
 type RecipeView = 'cards' | 'table';
 
+/** A snapshot of the filter panel's fields, applied when the user searches. */
+interface RecipeFilters {
+  name: string;
+  ingredient: string;
+  honey: string;
+  yeast: string;
+}
+
+const NO_FILTERS: RecipeFilters = { name: '', ingredient: '', honey: '', yeast: '' };
+
 /**
- * Recipe Book landing page: lists the signed-in user's recipes with search and
- * filtering (by name, honey type, contained ingredient and yeast type), a
- * card/table view toggle, and actions to create, edit, export and delete each one.
+ * Recipe Book landing page: lists the signed-in user's recipes beside a
+ * collapsible Filter Settings panel (by name, honey type, contained ingredient and
+ * yeast type — applied on Search), with a header holding the card/table view
+ * toggle, and actions to create, edit, export and delete each one.
  */
 @Component({
   selector: 'app-recipes',
@@ -53,16 +65,23 @@ export class Recipes {
   private readonly recipeService = inject(RecipeService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly layout = inject(LayoutService);
+
+  /** Whether the filter panel is shrunk to its icon rail. */
+  protected readonly filtersCollapsed = this.layout.filtersCollapsed;
 
   protected readonly recipes = signal<RecipeSummary[]>([]);
   protected readonly loading = signal(true);
   protected readonly view = signal<RecipeView>('cards');
 
-  /** Free-text and dropdown filter state, all applied together (AND). */
+  /** Draft filter fields as edited in the panel; only take effect on {@link search}. */
   protected readonly nameFilter = signal('');
   protected readonly ingredientFilter = signal('');
   protected readonly honeyFilter = signal('');
   protected readonly yeastFilter = signal('');
+
+  /** The filters last searched with, all applied together (AND). */
+  protected readonly appliedFilters = signal<RecipeFilters>(NO_FILTERS);
 
   protected readonly tableColumns = ['name', 'honey', 'yeast', 'updated', 'actions'];
 
@@ -79,12 +98,11 @@ export class Recipes {
     this.distinctValues((r) => this.ingredientName(r, 'yeast')),
   );
 
-  /** Recipes narrowed by every active filter. */
+  /** Recipes narrowed by every applied filter. */
   protected readonly filteredRecipes = computed(() => {
-    const name = this.nameFilter().trim().toLowerCase();
-    const ingredient = this.ingredientFilter().trim().toLowerCase();
-    const honey = this.honeyFilter();
-    const yeast = this.yeastFilter();
+    const { honey, yeast } = this.appliedFilters();
+    const name = this.appliedFilters().name.toLowerCase();
+    const ingredient = this.appliedFilters().ingredient.toLowerCase();
 
     return this.recipes().filter((recipe) => {
       if (name && !recipe.name.toLowerCase().includes(name)) {
@@ -106,14 +124,11 @@ export class Recipes {
     });
   });
 
-  /** True when any filter is narrowing the list. */
-  protected readonly hasActiveFilters = computed(
-    () =>
-      !!this.nameFilter().trim() ||
-      !!this.ingredientFilter().trim() ||
-      !!this.honeyFilter() ||
-      !!this.yeastFilter(),
-  );
+  /** True when any applied filter is narrowing the list. */
+  protected readonly hasActiveFilters = computed(() => {
+    const { name, ingredient, honey, yeast } = this.appliedFilters();
+    return !!(name || ingredient || honey || yeast);
+  });
 
   constructor() {
     this.load();
@@ -133,11 +148,27 @@ export class Recipes {
     );
   }
 
+  /** Applies the panel's current fields to the recipe list. */
+  protected search(): void {
+    this.appliedFilters.set({
+      name: this.nameFilter().trim(),
+      ingredient: this.ingredientFilter().trim(),
+      honey: this.honeyFilter(),
+      yeast: this.yeastFilter(),
+    });
+  }
+
+  /** Resets the panel's fields and the applied filters. */
   protected clearFilters(): void {
     this.nameFilter.set('');
     this.ingredientFilter.set('');
     this.honeyFilter.set('');
     this.yeastFilter.set('');
+    this.appliedFilters.set(NO_FILTERS);
+  }
+
+  protected toggleFilters(): void {
+    this.layout.toggleFilters();
   }
 
   private distinctValues(select: (r: RecipeSummary) => string): string[] {
