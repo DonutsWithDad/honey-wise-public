@@ -1,0 +1,64 @@
+# Repo-wide ignores. The Angular app has its own .gitignore in honey-wise-web/.
+# .NET rules are a trimmed version of GitHub's VisualStudio.gitignore template.
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+# .NET test results and coverage
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.json
+coverage*.xml
+*.coverage
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+
+# Publish output
+[Pp]ublish/
+*.[Pp]ublish.xml
+*.pubxml.user
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+_ReSharper*/
+*.DotSettings.user
+
+# Visual Studio Code: keep shared launch/task configs, ignore personal settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.pfx
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
