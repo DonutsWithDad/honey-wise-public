@@ -1,8 +1,6 @@
--- Recipe Book schema + seed data for the HoneyWise "Mead_Tool" database.
--- The project has no migration tooling (raw Npgsql), so run this by hand once
--- against the same database as "Tool"."User", e.g.:
---   psql "Host=localhost;Port=5432;Username=postgres;Password=admin;Dbname=Mead_Tool" -f recipes.sql
--- The script is idempotent (IF NOT EXISTS / ON CONFLICT) and safe to re-run.
+-- Recipe Book schema + ingredient-preset reference data.
+-- IF NOT EXISTS / ON CONFLICT keep this a no-op on databases where it was
+-- applied by hand before migrations existed.
 
 -- One row per recipe. "UserId" is a foreign key to "Tool"."User"("Id"), so a
 -- user has many recipes (one-to-many); deleting a user removes their recipes.

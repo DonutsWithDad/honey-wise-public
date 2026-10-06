@@ -1,7 +1,5 @@
--- Saved grid views for the HoneyWise "Mead_Tool" database. Like recipes.sql, run
--- this by hand once against the same database as "Tool"."User", e.g.:
---   psql "Host=localhost;Port=5432;Username=postgres;Password=admin;Dbname=Mead_Tool" -f grid-views.sql
--- The script is idempotent (IF NOT EXISTS) and safe to re-run.
+-- Saved grid views. IF NOT EXISTS keeps this a no-op on databases where it was
+-- applied by hand before migrations existed.
 
 -- One row per named view a user saves for a grid. "GridKey" names the grid the
 -- view belongs to (e.g. 'recipes'), so one table serves every grid in the app.
