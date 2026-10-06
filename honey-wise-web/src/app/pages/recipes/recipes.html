@@ -107,17 +107,25 @@
         <p class="recipes-subtitle">Your saved mead recipes</p>
       </div>
       <div class="recipes-header-actions">
+        <!-- Hidden rather than removed in card view, so switching views doesn't
+             reload saved views and re-apply the opening one over unsaved changes. -->
+        <app-grid-views-menu
+          [hidden]="view() !== 'table'"
+          gridKey="recipes"
+          [captureState]="captureViewState"
+          (applyState)="applyViewState($event)"
+        />
         <mat-button-toggle-group
           [value]="view()"
           (change)="view.set($event.value)"
           aria-label="View mode"
           hideSingleSelectionIndicator
         >
-          <mat-button-toggle value="cards" aria-label="Card view">
-            <mat-icon>grid_view</mat-icon>
-          </mat-button-toggle>
           <mat-button-toggle value="table" aria-label="Table view">
             <mat-icon>view_list</mat-icon>
+          </mat-button-toggle>
+          <mat-button-toggle value="cards" aria-label="Card view">
+            <mat-icon>grid_view</mat-icon>
           </mat-button-toggle>
         </mat-button-toggle-group>
         <a mat-flat-button routerLink="/recipes/new">
@@ -191,75 +199,16 @@
             }
           </div>
         } @else {
-          <div class="recipes-table-wrapper">
-            <table mat-table [dataSource]="filteredRecipes()" class="recipes-table">
-              <ng-container matColumnDef="name">
-                <th mat-header-cell *matHeaderCellDef>Name</th>
-                <td
-                  mat-cell
-                  *matCellDef="let recipe"
-                  [matTooltip]="recipe.name"
-                  [matTooltipDisabled]="recipe.name.length <= titleMaxLength"
-                >
-                  {{ displayName(recipe.name) }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="honey">
-                <th mat-header-cell *matHeaderCellDef>Honey type</th>
-                <td mat-cell *matCellDef="let recipe">
-                  {{ ingredientName(recipe, 'honey') || '—' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="yeast">
-                <th mat-header-cell *matHeaderCellDef>Yeast type</th>
-                <td mat-cell *matCellDef="let recipe">
-                  {{ ingredientName(recipe, 'yeast') || '—' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="updated">
-                <th mat-header-cell *matHeaderCellDef>Updated</th>
-                <td mat-cell *matCellDef="let recipe">
-                  {{ recipe.updatedAt | date: 'mediumDate' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="actions" stickyEnd>
-                <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
-                <td mat-cell *matCellDef="let recipe" class="recipes-table-actions">
-                  <a
-                    mat-icon-button
-                    [routerLink]="['/recipes', recipe.id, 'edit']"
-                    aria-label="Edit recipe"
-                    matTooltip="Edit"
-                  >
-                    <mat-icon>edit</mat-icon>
-                  </a>
-                  <button
-                    mat-icon-button
-                    (click)="exportRecipe(recipe)"
-                    aria-label="Export recipe"
-                    matTooltip="Export"
-                  >
-                    <mat-icon>download</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    (click)="confirmDelete(recipe)"
-                    aria-label="Delete recipe"
-                    matTooltip="Delete"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="tableColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: tableColumns"></tr>
-            </table>
-          </div>
+          <ag-grid-angular
+            class="recipes-table"
+            [rowData]="filteredRecipes()"
+            [columnDefs]="columnDefs"
+            [getRowId]="getRowId"
+            [initialState]="gridInitialState"
+            (gridReady)="onGridReady($event)"
+            (stateUpdated)="onGridStateUpdated($event)"
+            (gridPreDestroyed)="onGridPreDestroyed()"
+          />
         }
       }
     </div>

@@ -16,5 +16,11 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/GridViews": {
+    "target": "http://localhost:20000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
   }
 }

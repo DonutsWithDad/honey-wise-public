@@ -1,7 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DatePipe } from '@angular/common';
+import { DatePipe, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { MatCardModule } from '@angular/material/card';
@@ -12,15 +12,26 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { AgGridAngular } from 'ag-grid-angular';
+import {
+  ColDef,
+  GetRowIdFunc,
+  GridApi,
+  GridReadyEvent,
+  GridState,
+  StateUpdatedEvent,
+} from 'ag-grid-community';
 
+import '../../shared/grid/grid-setup';
 import { RecipeService } from '../../core/recipe.service';
 import { LayoutService } from '../../core/layout.service';
 import { RecipeSummary } from '../../core/recipe.models';
-import { ConfirmDialog, ConfirmDialogData } from './confirm-dialog';
+import { ConfirmDialog, ConfirmDialogData } from '../../shared/confirm-dialog';
+import { GridViewsMenu } from '../../shared/grid/grid-views-menu';
+import { RecipeActionsCell, RecipeActionsCellParams } from './recipe-actions-cell';
 
 /** Which layout the recipe list is rendered in. */
 type RecipeView = 'cards' | 'table';
@@ -36,10 +47,27 @@ interface RecipeFilters {
 const NO_FILTERS: RecipeFilters = { name: '', ingredient: '', honey: '', yeast: '' };
 
 /**
+ * What a saved Recipe Book view holds: the table's layout (column order, widths,
+ * pinning, visibility, sort and column filters) plus the filter panel's applied
+ * filters. `grid` is absent if the view was saved before the table was ever shown.
+ */
+interface RecipeViewState {
+  grid?: GridState;
+  filters: RecipeFilters;
+}
+
+/** The parts of AG Grid's state a saved view keeps (not scroll, focus, etc.). */
+function layoutState(state: GridState): GridState {
+  const { version, columnOrder, columnPinning, columnSizing, columnVisibility, sort, filter } =
+    state;
+  return { version, columnOrder, columnPinning, columnSizing, columnVisibility, sort, filter };
+}
+
+/**
  * Recipe Book landing page: lists the signed-in user's recipes beside a
  * collapsible Filter Settings panel (by name, honey type, contained ingredient and
  * yeast type — applied on Search), with a header holding the card/table view
- * toggle, and actions to create, edit, export and delete each one.
+ * toggle and saved-views menu, and actions to create, edit, export and delete each one.
  */
 @Component({
   selector: 'app-recipes',
@@ -55,8 +83,9 @@ const NO_FILTERS: RecipeFilters = { name: '', ingredient: '', honey: '', yeast: 
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTableModule,
     MatTooltipModule,
+    AgGridAngular,
+    GridViewsMenu,
   ],
   templateUrl: './recipes.html',
   styleUrl: './recipes.scss',
@@ -66,13 +95,14 @@ export class Recipes {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly layout = inject(LayoutService);
+  private readonly locale = inject(LOCALE_ID);
 
   /** Whether the filter panel is shrunk to its icon rail. */
   protected readonly filtersCollapsed = this.layout.filtersCollapsed;
 
   protected readonly recipes = signal<RecipeSummary[]>([]);
   protected readonly loading = signal(true);
-  protected readonly view = signal<RecipeView>('cards');
+  protected readonly view = signal<RecipeView>('table');
 
   /** Draft filter fields as edited in the panel; only take effect on {@link search}. */
   protected readonly nameFilter = signal('');
@@ -83,7 +113,70 @@ export class Recipes {
   /** The filters last searched with, all applied together (AND). */
   protected readonly appliedFilters = signal<RecipeFilters>(NO_FILTERS);
 
-  protected readonly tableColumns = ['name', 'honey', 'yeast', 'updated', 'actions'];
+  /**
+   * Table-view columns. Sorting, resizing and column filters come from the global
+   * defaults in `shared/grid/grid-setup.ts`; these filters stack on top of the panel's.
+   */
+  protected readonly columnDefs: ColDef<RecipeSummary>[] = [
+    { headerName: 'Name', field: 'name', tooltipField: 'name' },
+    {
+      headerName: 'Honey type',
+      colId: 'honey',
+      valueGetter: (p) => (p.data ? this.ingredientName(p.data, 'honey') : ''),
+      valueFormatter: (p) => p.value || '—',
+    },
+    {
+      headerName: 'Yeast type',
+      colId: 'yeast',
+      valueGetter: (p) => (p.data ? this.ingredientName(p.data, 'yeast') : ''),
+      valueFormatter: (p) => p.value || '—',
+    },
+    {
+      headerName: 'Updated',
+      field: 'updatedAt',
+      valueFormatter: (p) => (p.value ? formatDate(p.value, 'mediumDate', this.locale) : ''),
+      filter: 'agDateColumnFilter',
+      filterParams: {
+        // The filter hands us a local-midnight date; compare against the row's local day.
+        comparator: (filterDate: Date, cellValue: string) => {
+          const updated = new Date(cellValue);
+          const day = new Date(updated.getFullYear(), updated.getMonth(), updated.getDate());
+          return day.getTime() - filterDate.getTime();
+        },
+      },
+    },
+    {
+      headerName: '',
+      colId: 'actions',
+      pinned: 'right',
+      cellRenderer: RecipeActionsCell,
+      cellRendererParams: {
+        onExport: (recipe) => this.exportRecipe(recipe),
+        onDelete: (recipe) => this.confirmDelete(recipe),
+      } satisfies RecipeActionsCellParams,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      flex: 0,
+      width: 152,
+      minWidth: 152,
+    },
+  ];
+
+  /** Keys rows by recipe id so deletes and re-filters update rows in place. */
+  protected readonly getRowId: GetRowIdFunc<RecipeSummary> = (p) => p.data.id;
+
+  /** The live grid, while the table view is showing. */
+  private gridApi: GridApi<RecipeSummary> | null = null;
+
+  /** The table's current layout, kept while the grid is hidden (card view, loading). */
+  private gridLayout: GridState | undefined;
+
+  /**
+   * Layout the next grid is created with. Only reassigned while no grid exists,
+   * since AG Grid reads `initialState` once at creation.
+   */
+  protected gridInitialState: GridState | undefined;
 
   /** Longest card title shown before it's truncated with an ellipsis. */
   protected readonly titleMaxLength = 25;
@@ -160,15 +253,56 @@ export class Recipes {
 
   /** Resets the panel's fields and the applied filters. */
   protected clearFilters(): void {
-    this.nameFilter.set('');
-    this.ingredientFilter.set('');
-    this.honeyFilter.set('');
-    this.yeastFilter.set('');
-    this.appliedFilters.set(NO_FILTERS);
+    this.setFilters(NO_FILTERS);
+  }
+
+  /** Snapshot for the saved-views menu: the table layout plus the panel's filters. */
+  protected readonly captureViewState = (): RecipeViewState => ({
+    grid: this.gridApi ? layoutState(this.gridApi.getState()) : this.gridLayout,
+    filters: this.appliedFilters(),
+  });
+
+  /** Restores a saved view, or the standard layout when `state` is null. */
+  protected applyViewState(state: RecipeViewState | null): void {
+    this.setFilters(state?.filters ?? NO_FILTERS);
+
+    const grid = state?.grid;
+    this.gridLayout = grid;
+    if (!this.gridApi) {
+      this.gridInitialState = grid;
+    } else if (grid) {
+      this.gridApi.setState(grid);
+    } else {
+      this.gridApi.resetColumnState();
+      this.gridApi.setFilterModel(null);
+    }
+  }
+
+  protected onGridReady(event: GridReadyEvent<RecipeSummary>): void {
+    this.gridApi = event.api;
+  }
+
+  protected onGridStateUpdated(event: StateUpdatedEvent<RecipeSummary>): void {
+    this.gridLayout = layoutState(event.state);
+  }
+
+  /** Remembers the layout so the grid comes back the same after card view or reload. */
+  protected onGridPreDestroyed(): void {
+    this.gridApi = null;
+    this.gridInitialState = this.gridLayout;
   }
 
   protected toggleFilters(): void {
     this.layout.toggleFilters();
+  }
+
+  /** Sets both the panel's draft fields and the applied filters. */
+  private setFilters(filters: RecipeFilters): void {
+    this.nameFilter.set(filters.name);
+    this.ingredientFilter.set(filters.ingredient);
+    this.honeyFilter.set(filters.honey);
+    this.yeastFilter.set(filters.yeast);
+    this.appliedFilters.set(filters);
   }
 
   private distinctValues(select: (r: RecipeSummary) => string): string[] {

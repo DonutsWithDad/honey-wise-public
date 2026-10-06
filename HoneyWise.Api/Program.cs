@@ -40,6 +40,7 @@ public class Program
         builder.Services.AddScoped<IUserStore, UserStore>();
         builder.Services.AddScoped<IRecipeStore, RecipeStore>();
         builder.Services.AddScoped<IIngredientPresetStore, IngredientPresetStore>();
+        builder.Services.AddScoped<IGridViewStore, GridViewStore>();
 
         // Bind JWT settings (secret comes from user-secrets/env, the rest from appsettings).
         builder.Services.Configure<JwtSettings>(

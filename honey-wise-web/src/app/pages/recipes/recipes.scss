@@ -181,29 +181,10 @@
   }
 }
 
-.recipes-table-wrapper {
-  overflow-x: auto;
-}
-
+// AG Grid table view; the Actions column is pinned right by the grid itself.
 .recipes-table {
+  display: block;
   width: 100%;
-}
-
-.recipes-table-actions {
-  white-space: nowrap;
-  text-align: right;
-}
-
-// The actions column is pinned to the right edge (stickyEnd) so the buttons stay
-// visible when the table scrolls sideways. Sticky cells need an opaque background
-// so scrolled content doesn't show through, plus a divider from the other columns.
-// `width: 1%` + nowrap shrinks it to exactly fit the buttons, so when the table is
-// wider than its content the extra space goes to the data columns instead.
-.recipes-table .mat-column-actions {
-  width: 1%;
-  white-space: nowrap;
-  background: var(--mat-table-background-color, var(--mat-sys-surface));
-  border-left: 1px solid var(--mat-sys-outline-variant);
 }
 
 .recipes-empty {
