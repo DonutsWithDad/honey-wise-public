@@ -53,19 +53,52 @@ html.dark .app-toolbar {
 .app-sidenav {
   width: 240px;
   border-right: 1px solid var(--mat-sys-outline-variant);
-  padding-top: 8px;
+  transition: width 200ms ease;
+  overflow-x: hidden;
 }
 
+// Collapsed: an icon-only rail. Titles are removed in the template; the list
+// items shrink to fit the icon and tooltips carry the labels.
+.app-sidenav--collapsed {
+  width: 64px;
+}
+
+// Nav links at the top, the collapse toggle pinned to the bottom below a divider.
+.app-sidenav-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: 8px;
+  box-sizing: border-box;
+}
+
+.app-sidenav-spacer {
+  flex: 1 1 auto;
+}
+
+// Collapse toggle: right-aligned when expanded, centered on the icon rail.
+.app-sidenav-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px;
+}
+
+.app-sidenav--collapsed .app-sidenav-footer {
+  justify-content: center;
+}
+
+// Authenticated pages manage their own padding so full-height layouts (like the
+// Recipe Book's filter panel) can sit flush against the sidenav.
 .app-content {
   display: block;
   box-sizing: border-box;
-  padding: 24px 16px;
 }
 
 // The plain (unauthenticated) content region needs its own min-height since it
 // isn't inside the sidenav container.
 .app-content--plain {
   min-height: calc(100vh - 64px);
+  padding: 24px 16px;
 }
 
 // The non-interactive name row at the top of the profile menu.

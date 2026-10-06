@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,14 +7,17 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { AuthService } from './core/auth.service';
+import { LayoutService } from './core/layout.service';
 import { ThemeService } from './core/theme.service';
 import { UserService } from './core/user.service';
 import { SessionService } from './core/session.service';
 
 /**
- * Application shell: a persistent top toolbar + collapsible side navigation that
+ * Application shell: a persistent top toolbar + side navigation (collapsible to
+ * an icon-only rail) that
  * wrap every routed page. The toolbar carries the brand, a dark-mode toggle and
  * (when signed in) a profile menu; the sidenav lists the app's sections. Both are
  * only shown to authenticated users — the login/register/home screens render on
@@ -33,6 +36,7 @@ import { SessionService } from './core/session.service';
     MatListModule,
     MatMenuModule,
     MatTooltipModule,
+    MatDividerModule,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -51,8 +55,10 @@ export class App {
   protected readonly isDark = this.theme.isDark;
   protected readonly profile = this.users.profile;
 
-  /** Whether the sidenav drawer is open. Defaults open on desktop-width screens. */
-  protected readonly sidenavOpen = signal(window.innerWidth >= 960);
+  private readonly layout = inject(LayoutService);
+
+  /** Whether the sidenav is shrunk to an icon-only rail. */
+  protected readonly navCollapsed = this.layout.navCollapsed;
 
   /** Falls back to a generic label until the profile has loaded. */
   protected readonly displayName = computed(() => this.profile()?.userName ?? 'Account');
@@ -71,8 +77,8 @@ export class App {
     });
   }
 
-  protected toggleSidenav(): void {
-    this.sidenavOpen.update((open) => !open);
+  protected toggleNav(): void {
+    this.layout.toggleNav();
   }
 
   protected toggleTheme(): void {

@@ -1,15 +1,4 @@
 <mat-toolbar class="app-toolbar">
-  @if (isAuthenticated()) {
-    <button
-      mat-icon-button
-      class="app-menu-toggle"
-      (click)="toggleSidenav()"
-      aria-label="Toggle navigation"
-    >
-      <mat-icon>menu</mat-icon>
-    </button>
-  }
-
   <a routerLink="/" class="app-brand">
     <mat-icon>hive</mat-icon>
     <span>HoneyWise</span>
@@ -57,25 +46,49 @@
 </mat-toolbar>
 
 @if (isAuthenticated()) {
-  <mat-sidenav-container class="app-shell">
+  <mat-sidenav-container class="app-shell" autosize>
     <mat-sidenav
       class="app-sidenav"
-      [opened]="sidenavOpen()"
-      [mode]="'side'"
-      (closedStart)="sidenavOpen.set(false)"
+      [class.app-sidenav--collapsed]="navCollapsed()"
+      opened
+      mode="side"
+      disableClose
     >
-      <mat-nav-list>
-        <a
-          mat-list-item
-          routerLink="/recipes"
-          routerLinkActive
-          #recipesLink="routerLinkActive"
-          [activated]="recipesLink.isActive"
-        >
-          <mat-icon matListItemIcon>menu_book</mat-icon>
-          <span matListItemTitle>Recipe Book</span>
-        </a>
-      </mat-nav-list>
+      <div class="app-sidenav-inner">
+        <mat-nav-list>
+          <a
+            mat-list-item
+            routerLink="/recipes"
+            routerLinkActive
+            #recipesLink="routerLinkActive"
+            [activated]="recipesLink.isActive"
+            matTooltip="Recipe Book"
+            matTooltipPosition="right"
+            [matTooltipDisabled]="!navCollapsed()"
+          >
+            <mat-icon matListItemIcon>menu_book</mat-icon>
+            @if (!navCollapsed()) {
+              <span matListItemTitle>Recipe Book</span>
+            }
+          </a>
+        </mat-nav-list>
+
+        <span class="app-sidenav-spacer"></span>
+
+        <mat-divider />
+        <div class="app-sidenav-footer">
+          <button
+            mat-icon-button
+            type="button"
+            (click)="toggleNav()"
+            [matTooltip]="navCollapsed() ? 'Expand navigation' : 'Collapse navigation'"
+            matTooltipPosition="right"
+            [attr.aria-label]="navCollapsed() ? 'Expand navigation' : 'Collapse navigation'"
+          >
+            <mat-icon>{{ navCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+          </button>
+        </div>
+      </div>
     </mat-sidenav>
 
     <mat-sidenav-content class="app-content">

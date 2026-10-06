@@ -1,223 +1,216 @@
 <div class="recipes-page">
-  <header class="recipes-header">
-    <div>
-      <h1>Recipe Book</h1>
-      <p class="recipes-subtitle">Your saved mead recipes</p>
-    </div>
-    <a mat-flat-button routerLink="/recipes/new">
-      <mat-icon>add</mat-icon>
-      New recipe
-    </a>
-  </header>
-
-  @if (loading()) {
-    <mat-progress-bar mode="indeterminate" />
-  } @else if (recipes().length === 0) {
-    <mat-card class="recipes-empty" appearance="outlined">
-      <mat-icon>menu_book</mat-icon>
-      <p>No recipes yet. Create your first mead recipe to get started.</p>
-      <a mat-flat-button routerLink="/recipes/new">
-        <mat-icon>add</mat-icon>
-        New recipe
-      </a>
-    </mat-card>
-  } @else {
-    <div class="recipes-toolbar">
-      <div class="recipes-filters">
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Search by name</mat-label>
-          <mat-icon matPrefix>search</mat-icon>
-          <input
-            matInput
-            type="text"
-            [ngModel]="nameFilter()"
-            (ngModelChange)="nameFilter.set($event)"
-            placeholder="Recipe name"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Contains ingredient</mat-label>
-          <mat-icon matPrefix>science</mat-icon>
-          <input
-            matInput
-            type="text"
-            [ngModel]="ingredientFilter()"
-            (ngModelChange)="ingredientFilter.set($event)"
-            placeholder="e.g. Cinnamon"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Honey type</mat-label>
-          <mat-select
-            [ngModel]="honeyFilter()"
-            (ngModelChange)="honeyFilter.set($event)"
-          >
-            <mat-option value="">Any honey</mat-option>
-            @for (honey of honeyOptions(); track honey) {
-              <mat-option [value]="honey">{{ honey }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Yeast type</mat-label>
-          <mat-select
-            [ngModel]="yeastFilter()"
-            (ngModelChange)="yeastFilter.set($event)"
-          >
-            <mat-option value="">Any yeast</mat-option>
-            @for (yeast of yeastOptions(); track yeast) {
-              <mat-option [value]="yeast">{{ yeast }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
+  <aside class="filter-panel" [class.filter-panel--collapsed]="filtersCollapsed()">
+    @if (filtersCollapsed()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="filter-panel-expand"
+        (click)="toggleFilters()"
+        matTooltip="Show filter settings"
+        matTooltipPosition="right"
+        aria-label="Show filter settings"
+      >
+        <mat-icon>filter_list</mat-icon>
         @if (hasActiveFilters()) {
+          <span class="filter-panel-dot" aria-hidden="true"></span>
+        }
+      </button>
+    } @else {
+      <div class="filter-panel-header">
+        <h2>Filter Settings</h2>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleFilters()"
+          matTooltip="Hide filter settings"
+          aria-label="Hide filter settings"
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+      </div>
+
+      <form class="filter-panel-form" (ngSubmit)="search()">
+        <div class="filter-panel-fields">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Search by name</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              type="text"
+              name="name"
+              [ngModel]="nameFilter()"
+              (ngModelChange)="nameFilter.set($event)"
+              placeholder="Recipe name"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Contains ingredient</mat-label>
+            <mat-icon matPrefix>science</mat-icon>
+            <input
+              matInput
+              type="text"
+              name="ingredient"
+              [ngModel]="ingredientFilter()"
+              (ngModelChange)="ingredientFilter.set($event)"
+              placeholder="e.g. Cinnamon"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Honey type</mat-label>
+            <mat-select
+              name="honey"
+              [ngModel]="honeyFilter()"
+              (ngModelChange)="honeyFilter.set($event)"
+            >
+              <mat-option value="">Any honey</mat-option>
+              @for (honey of honeyOptions(); track honey) {
+                <mat-option [value]="honey">{{ honey }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Yeast type</mat-label>
+            <mat-select
+              name="yeast"
+              [ngModel]="yeastFilter()"
+              (ngModelChange)="yeastFilter.set($event)"
+            >
+              <mat-option value="">Any yeast</mat-option>
+              @for (yeast of yeastOptions(); track yeast) {
+                <mat-option [value]="yeast">{{ yeast }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="filter-panel-actions">
           <button mat-button type="button" (click)="clearFilters()">
             <mat-icon>filter_alt_off</mat-icon>
             Clear
           </button>
-        }
-      </div>
-
-      <mat-button-toggle-group
-        class="recipes-view-toggle"
-        [value]="view()"
-        (change)="view.set($event.value)"
-        aria-label="View mode"
-        hideSingleSelectionIndicator
-      >
-        <mat-button-toggle value="cards" aria-label="Card view">
-          <mat-icon>grid_view</mat-icon>
-        </mat-button-toggle>
-        <mat-button-toggle value="table" aria-label="Table view">
-          <mat-icon>view_list</mat-icon>
-        </mat-button-toggle>
-      </mat-button-toggle-group>
-    </div>
-
-    @if (filteredRecipes().length === 0) {
-      <mat-card class="recipes-empty" appearance="outlined">
-        <mat-icon>search_off</mat-icon>
-        <p>No recipes match your filters.</p>
-        <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
-      </mat-card>
-    } @else if (view() === 'cards') {
-      <div class="recipes-grid">
-        @for (recipe of filteredRecipes(); track recipe.id) {
-          <mat-card class="recipe-card" appearance="outlined">
-            <mat-card-header>
-              <mat-card-title
-                [matTooltip]="recipe.name"
-                [matTooltipDisabled]="recipe.name.length <= titleMaxLength"
-              >{{ displayName(recipe.name) }}</mat-card-title>
-              <mat-card-subtitle>
-                Updated {{ recipe.updatedAt | date: 'mediumDate' }}
-              </mat-card-subtitle>
-            </mat-card-header>
-
-            <mat-card-content>
-              <dl class="recipe-meta">
-                <div>
-                  <dt>Honey</dt>
-                  <dd>{{ ingredientName(recipe, 'honey') || '—' }}</dd>
-                </div>
-                <div>
-                  <dt>Yeast</dt>
-                  <dd>{{ ingredientName(recipe, 'yeast') || '—' }}</dd>
-                </div>
-              </dl>
-            </mat-card-content>
-
-            <mat-card-actions>
-              <a mat-button [routerLink]="['/recipes', recipe.id, 'edit']">
-                <mat-icon>edit</mat-icon>
-                Edit
-              </a>
-              <button mat-button (click)="exportRecipe(recipe)">
-                <mat-icon>download</mat-icon>
-                Export
-              </button>
-              <button mat-button (click)="confirmDelete(recipe)">
-                <mat-icon>delete</mat-icon>
-                Delete
-              </button>
-            </mat-card-actions>
-          </mat-card>
-        }
-      </div>
-    } @else {
-      <div class="recipes-table-wrapper">
-        <table mat-table [dataSource]="filteredRecipes()" class="recipes-table">
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
-            <td
-              mat-cell
-              *matCellDef="let recipe"
-              [matTooltip]="recipe.name"
-              [matTooltipDisabled]="recipe.name.length <= titleMaxLength"
-            >
-              {{ displayName(recipe.name) }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="honey">
-            <th mat-header-cell *matHeaderCellDef>Honey type</th>
-            <td mat-cell *matCellDef="let recipe">
-              {{ ingredientName(recipe, 'honey') || '—' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="yeast">
-            <th mat-header-cell *matHeaderCellDef>Yeast type</th>
-            <td mat-cell *matCellDef="let recipe">
-              {{ ingredientName(recipe, 'yeast') || '—' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="updated">
-            <th mat-header-cell *matHeaderCellDef>Updated</th>
-            <td mat-cell *matCellDef="let recipe">
-              {{ recipe.updatedAt | date: 'mediumDate' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
-            <td mat-cell *matCellDef="let recipe" class="recipes-table-actions">
-              <a
-                mat-icon-button
-                [routerLink]="['/recipes', recipe.id, 'edit']"
-                aria-label="Edit recipe"
-                matTooltip="Edit"
-              >
-                <mat-icon>edit</mat-icon>
-              </a>
-              <button
-                mat-icon-button
-                (click)="exportRecipe(recipe)"
-                aria-label="Export recipe"
-                matTooltip="Export"
-              >
-                <mat-icon>download</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                (click)="confirmDelete(recipe)"
-                aria-label="Delete recipe"
-                matTooltip="Delete"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="tableColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: tableColumns"></tr>
-        </table>
-      </div>
+          <button mat-flat-button type="submit">
+            <mat-icon>search</mat-icon>
+            Search
+          </button>
+        </div>
+      </form>
     }
-  }
+  </aside>
+
+  <section class="recipes-main">
+    <header class="recipes-header">
+      <div>
+        <h1>Recipe Book</h1>
+        <p class="recipes-subtitle">Your saved mead recipes</p>
+      </div>
+      <div class="recipes-header-actions">
+        <!-- Hidden rather than removed in card view, so switching views doesn't
+             reload saved views and re-apply the opening one over unsaved changes. -->
+        <app-grid-views-menu
+          [hidden]="view() !== 'table'"
+          gridKey="recipes"
+          [captureState]="captureViewState"
+          (applyState)="applyViewState($event)"
+        />
+        <mat-button-toggle-group
+          [value]="view()"
+          (change)="view.set($event.value)"
+          aria-label="View mode"
+          hideSingleSelectionIndicator
+        >
+          <mat-button-toggle value="table" aria-label="Table view">
+            <mat-icon>view_list</mat-icon>
+          </mat-button-toggle>
+          <mat-button-toggle value="cards" aria-label="Card view">
+            <mat-icon>grid_view</mat-icon>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+        <a mat-flat-button routerLink="/recipes/new">
+          <mat-icon>add</mat-icon>
+          New recipe
+        </a>
+      </div>
+    </header>
+
+    <div class="recipes-results">
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (recipes().length === 0) {
+        <mat-card class="recipes-empty" appearance="outlined">
+          <mat-icon>menu_book</mat-icon>
+          <p>No recipes yet. Create your first mead recipe to get started.</p>
+          <a mat-flat-button routerLink="/recipes/new">
+            <mat-icon>add</mat-icon>
+            New recipe
+          </a>
+        </mat-card>
+      } @else {
+        @if (filteredRecipes().length === 0) {
+          <mat-card class="recipes-empty" appearance="outlined">
+            <mat-icon>search_off</mat-icon>
+            <p>No recipes match your filters.</p>
+            <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+          </mat-card>
+        } @else if (view() === 'cards') {
+          <div class="recipes-grid">
+            @for (recipe of filteredRecipes(); track recipe.id) {
+              <mat-card class="recipe-card" appearance="outlined">
+                <mat-card-header>
+                  <mat-card-title
+                    [matTooltip]="recipe.name"
+                    [matTooltipDisabled]="recipe.name.length <= titleMaxLength"
+                  >{{ displayName(recipe.name) }}</mat-card-title>
+                  <mat-card-subtitle>
+                    Updated {{ recipe.updatedAt | date: 'mediumDate' }}
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <dl class="recipe-meta">
+                    <div>
+                      <dt>Honey</dt>
+                      <dd>{{ ingredientName(recipe, 'honey') || '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Yeast</dt>
+                      <dd>{{ ingredientName(recipe, 'yeast') || '—' }}</dd>
+                    </div>
+                  </dl>
+                </mat-card-content>
+
+                <mat-card-actions>
+                  <a mat-button [routerLink]="['/recipes', recipe.id, 'edit']">
+                    <mat-icon>edit</mat-icon>
+                    Edit
+                  </a>
+                  <button mat-button (click)="exportRecipe(recipe)">
+                    <mat-icon>download</mat-icon>
+                    Export
+                  </button>
+                  <button mat-button (click)="confirmDelete(recipe)">
+                    <mat-icon>delete</mat-icon>
+                    Delete
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            }
+          </div>
+        } @else {
+          <ag-grid-angular
+            class="recipes-table"
+            [rowData]="filteredRecipes()"
+            [columnDefs]="columnDefs"
+            [getRowId]="getRowId"
+            [initialState]="gridInitialState"
+            (gridReady)="onGridReady($event)"
+            (stateUpdated)="onGridStateUpdated($event)"
+            (gridPreDestroyed)="onGridPreDestroyed()"
+          />
+        }
+      }
+    </div>
+  </section>
 </div>
