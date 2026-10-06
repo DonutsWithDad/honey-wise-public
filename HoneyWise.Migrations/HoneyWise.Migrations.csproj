@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dbup-postgresql" Version="7.0.1" />
+  </ItemGroup>
+
+  <!-- SQL scripts ship inside the assembly so the migrator is a single self-contained artifact. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\*.sql" />
+    <EmbeddedResource Include="SeedDev\*.sql" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+# Local development services. Production uses deploy/docker-compose.prod.yml.
+# Normally started for you by scripts/dev.ps1 / scripts/dev.sh; values come from .env.
+name: honey-wise-dev
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-honeywise-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-Mead_Tool}
+    # 5433 on the host by default so it can't clash with a natively installed Postgres on 5432.
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      # Postgres 18+ images keep data under /var/lib/postgresql (not .../data).
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  db-data:

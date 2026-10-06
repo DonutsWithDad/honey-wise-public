@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="HoneyWise.Api/HoneyWise.Api.csproj" />
+  <Project Path="HoneyWise.Migrations/HoneyWise.Migrations.csproj" />
+</Solution>
