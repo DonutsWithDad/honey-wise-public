@@ -1,0 +1,91 @@
+# Continuous integration: builds and tests every pull request and every push to main.
+# Nothing here deploys anything; it only reports pass or fail on the commit.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch or pull request cancels the run it replaces.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Reading the code is all these jobs need to do.
+permissions:
+  contents: read
+
+# The two jobs run at the same time on separate machines.
+jobs:
+  api:
+    name: API and migrations
+    runs-on: ubuntu-latest
+
+    # A throwaway Postgres for this run only; same version as docker-compose.yml.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      # Not a secret: this database only exists for the few minutes the job runs.
+      HoneyWiseConnection: Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=Mead_Tool
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the SDK version pinned in global.json.
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore packages
+        run: dotnet restore HoneyWise.slnx
+
+      - name: Build
+        run: dotnet build HoneyWise.slnx --configuration Release --no-restore
+
+      # Builds the whole schema on an empty server, the same way a first deploy would.
+      - name: Apply migrations
+        run: dotnet run --project HoneyWise.Migrations --configuration Release --no-build -- --seed-dev
+
+      # A second run must be a no-op: checks the journal and that SeedDev stays idempotent.
+      - name: Apply migrations again
+        run: dotnet run --project HoneyWise.Migrations --configuration Release --no-build -- --seed-dev
+
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: honey-wise-web
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: honey-wise-web/package-lock.json
+
+      # Installs exactly what package-lock.json lists; fails if it disagrees with package.json.
+      - name: Install packages
+        run: npm ci
+
+      # Without these flags Karma opens a browser window and waits for file changes forever.
+      - name: Unit tests
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Production build
+        run: npm run build

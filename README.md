@@ -73,6 +73,23 @@ Schema and reference data live in `HoneyWise.Migrations/Scripts/` as numbered SQ
 
 `HoneyWise.Migrations/SeedDev/` holds sample data for local development only. It runs on every start with `--seed-dev` and never in production, so keep it idempotent.
 
+## Continuous integration
+
+Every pull request and every push to `main` runs `.github/workflows/ci.yml` on GitHub Actions. Two jobs run side by side:
+
+| Job | What it checks |
+|---|---|
+| API and migrations | The solution builds, and the migrator can create the database from empty and be re-run safely. |
+| Web app | Packages install from the lock file, the unit tests pass in headless Chrome, and the production build succeeds. |
+
+To run the web checks locally the way CI does:
+
+```bash
+cd honey-wise-web
+npm test -- --watch=false --browsers=ChromeHeadless
+npm run build
+```
+
 ## Configuration and secrets
 
 | Setting | Local dev | Production |
