@@ -1,31 +1,175 @@
+// Fill the sidenav content area: the ribbon sits on top and only the area
+// beneath it scrolls, so nothing in that area can ever cover the ribbon.
+:host {
+  display: block;
+  height: 100%;
+}
+
 .recipe-form-page {
+  height: 100%;
   display: flex;
+  flex-direction: column;
+}
+
+// Ribbon: title and Save stay in view while the cards scroll.
+.recipe-form-header {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  h1 {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+}
+
+.recipe-form-subtitle {
+  margin: 4px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.recipe-form-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.recipe-form-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.recipe-form-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
   justify-content: center;
-  padding: 32px 16px;
+  gap: 24px;
+  padding: 24px 16px;
+}
+
+.recipe-form-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// Table of contents: stays put on the right while the cards scroll past.
+.recipe-form-toc {
+  flex: 0 0 190px;
+  position: sticky;
+  // Matches the scroll area's top padding, so it does not shift when scrolling starts.
+  top: 24px;
+  padding-left: 16px;
+  border-left: 1px solid var(--mat-sys-outline-variant);
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  ul ul {
+    padding-left: 12px;
+    font-size: 0.85rem;
+  }
+
+  button {
+    all: unset;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mat-sys-primary);
+    }
+  }
+}
+
+// On narrow screens the contents list stays, but takes less room.
+@media (max-width: 760px) {
+  .recipe-form-scroll {
+    gap: 12px;
+    padding: 16px 8px;
+  }
+
+  .recipe-form-toc {
+    top: 16px;
+    flex-basis: 110px;
+    padding-left: 8px;
+    font-size: 0.85rem;
+  }
 }
 
 .recipe-form-card {
-  width: 100%;
-  max-width: 720px;
   overflow: hidden;
+  scroll-margin-top: 8px;
 
   mat-card-header {
     margin-top: 8px;
   }
 }
 
-.recipe-form {
+.card-toggle {
+  margin-left: auto;
+}
+
+// Collapsed: only the card's header shows. The fields stay in the form.
+.card-collapsed {
+  mat-card-header {
+    padding-bottom: 16px;
+  }
+
+  .card-fields {
+    display: none;
+  }
+}
+
+.card-fields {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-top: 16px;
 }
 
-.recipe-form mat-form-field {
+.card-fields mat-form-field {
   width: 100%;
 }
 
+.add-row {
+  align-self: flex-start;
+}
+
 .section-heading {
+  scroll-margin-top: 8px;
   margin: 16px 0 0;
   font-size: 1.05rem;
   color: var(--mat-sys-primary);
@@ -39,7 +183,8 @@
 
 // Rows that lay out multiple fields side by side, wrapping on narrow screens.
 .core-row,
-.ingredient-row {
+.ingredient-row,
+.suggestion-actions {
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -47,7 +192,8 @@
 }
 
 .core-row .grow,
-.ingredient-row .grow {
+.ingredient-row .grow,
+.suggestion-actions .grow {
   flex: 1 1 160px;
 }
 
@@ -68,7 +214,8 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
-.step-row {
+.step-row,
+.timer-row {
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -88,9 +235,77 @@
   color: var(--mat-sys-on-primary);
 }
 
-.form-actions {
+// Timers
+
+.timer-row {
+  flex-wrap: wrap;
+}
+
+// One line of the step's text, so each timer can be matched to its step.
+.timer-step-text {
+  flex: 1 1 200px;
+  min-width: 0;
+  margin-top: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-row .timer-value {
+  flex: 0 1 110px;
+}
+
+.timer-row .timer-unit {
+  flex: 0 1 130px;
+}
+
+.suggestion-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+
+  dt {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.suggestion-additions {
+  margin: 8px 0;
+  padding-left: 24px;
+
+  li {
+    margin-bottom: 4px;
+  }
+}
+
+.suggestion-trigger {
+  display: block;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.estimate-tag {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.suggestion-warning {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  align-items: flex-start;
+  margin: 0 0 8px;
+  color: var(--mat-sys-error);
+}
+
+.suggestion-actions button {
+  margin-top: 8px;
 }

@@ -1,8 +1,18 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,9 +32,45 @@ import {
   RecipeInput,
   RecipeStep,
 } from '../../core/recipe.models';
+import { NutrientAddition, suggestNutrientSchedule } from '../../core/nutrient-schedule';
 
 /** Weight units offered for the honey amount. */
 const UNITS = ['lb', 'kg', 'g', 'oz'] as const;
+
+/** Volume units offered for the batch size. */
+const BATCH_UNITS = ['gal', 'L'] as const;
+
+/** Units offered for a step timer, with how many minutes each is worth. */
+const TIMER_UNITS = [
+  { value: 'min', label: 'minutes', minutes: 1 },
+  { value: 'hr', label: 'hours', minutes: 60 },
+  { value: 'day', label: 'days', minutes: 1440 },
+] as const;
+
+type TimerUnit = (typeof TIMER_UNITS)[number]['value'];
+
+type SectionId = 'general' | 'steps' | 'timers';
+
+/**
+ * The page's cards and the headings inside them, as listed in the table of
+ * contents. Each id matches an element id of `recipe-<id>` in the template.
+ */
+const SECTIONS: { id: SectionId; label: string; children: { id: string; label: string }[] }[] = [
+  {
+    id: 'general',
+    label: 'General',
+    children: [
+      { id: 'core-ingredients', label: 'Core ingredients' },
+      { id: 'additional-ingredients', label: 'Additional ingredients' },
+    ],
+  },
+  { id: 'steps', label: 'Steps', children: [] },
+  {
+    id: 'timers',
+    label: 'Timers',
+    children: [{ id: 'nutrient-schedule', label: 'Suggested nutrient schedule' }],
+  },
+];
 
 /** Fallback categories if the presets endpoint is unavailable. */
 const FALLBACK_CATEGORIES = [
@@ -45,15 +91,25 @@ type IngredientGroup = FormGroup<{
   quantity: FormControl<string>;
 }>;
 
+/** Reactive-form shape for a single step and its timer. */
+type StepGroup = FormGroup<{
+  text: FormControl<string>;
+  timerValue: FormControl<number | null>;
+  timerUnit: FormControl<TimerUnit>;
+}>;
+
 /**
- * Add / edit form for a mead recipe. Honey, Water and Yeast are required core
- * fields; below them the user adds any number of extra ingredients and ordered
- * directions. On submit the core fields plus the extras are flattened into a
- * single ingredient list matching the API's `RecipeIngredient` shape.
+ * Add / edit form for a mead recipe, laid out as a header ribbon (title + save)
+ * over three cards: General, Steps and Timers. Honey, Water and Yeast are
+ * required core fields; below them the user adds any number of extra
+ * ingredients and ordered directions, each with an optional timer. On submit the
+ * core fields plus the extras are flattened into a single ingredient list
+ * matching the API's `RecipeIngredient` shape.
  */
 @Component({
   selector: 'app-recipe-form',
   imports: [
+    DecimalPipe,
     ReactiveFormsModule,
     RouterLink,
     MatCardModule,
@@ -74,8 +130,15 @@ export class RecipeForm {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+
+  protected readonly sections = SECTIONS;
+  private readonly collapsed = signal<ReadonlySet<SectionId>>(new Set());
 
   protected readonly units = UNITS;
+  protected readonly batchUnits = BATCH_UNITS;
+  protected readonly timerUnits = TIMER_UNITS;
   protected readonly submitting = signal(false);
   protected readonly loading = signal(false);
   protected readonly editId = signal<string | null>(null);
@@ -92,13 +155,52 @@ export class RecipeForm {
   protected readonly form = this.fb.group({
     name: this.fb.nonNullable.control('', Validators.required),
     description: this.fb.nonNullable.control(''),
+    batchSize: this.fb.control<number | null>(null, Validators.min(0)),
+    batchSizeUnit: this.fb.nonNullable.control<string>('gal'),
     honeyType: this.fb.nonNullable.control('', Validators.required),
     honeyWeight: this.fb.control<number | null>(null, [Validators.required, Validators.min(0)]),
     honeyUnit: this.fb.nonNullable.control<string>('lb', Validators.required),
     waterType: this.fb.nonNullable.control('', Validators.required),
     yeastType: this.fb.nonNullable.control('', Validators.required),
     ingredients: this.fb.array<IngredientGroup>([]),
-    steps: this.fb.array<FormControl<string>>([]),
+    steps: this.fb.array<StepGroup>([]),
+  });
+
+  private readonly formValue = toSignal(
+    this.form.valueChanges.pipe(map(() => this.form.getRawValue())),
+    { initialValue: this.form.getRawValue() },
+  );
+
+  /** Nutrient schedule worked out from the yeast, honey, batch size and nutrient entered so far. */
+  protected readonly suggestion = computed(() => {
+    const raw = this.formValue();
+    return suggestNutrientSchedule({
+      yeastName: raw.yeastType,
+      honeyWeight: raw.honeyWeight,
+      honeyUnit: raw.honeyUnit,
+      batchSize: raw.batchSize,
+      batchSizeUnit: raw.batchSizeUnit,
+      nutrientNames: raw.ingredients
+        .filter((i) => i.category.toLowerCase() === 'nutrient')
+        .map((i) => i.name),
+    });
+  });
+
+  // Step the user picked to insert suggested additions after; null until they choose.
+  private readonly insertAfterChoice = signal<number | null>(null);
+
+  /**
+   * Index of the step suggested additions go after: the user's pick, else the
+   * first step that mentions pitching the yeast, else the last step.
+   */
+  protected readonly insertAfter = computed(() => {
+    const steps = this.formValue().steps;
+    const choice = this.insertAfterChoice();
+    if (choice !== null && choice < steps.length) {
+      return choice;
+    }
+    const pitch = steps.findIndex((s) => /pitch/i.test(s.text));
+    return pitch >= 0 ? pitch : steps.length - 1;
   });
 
   constructor() {
@@ -137,17 +239,60 @@ export class RecipeForm {
     this.ingredients.removeAt(index);
   }
 
-  protected addStep(text = ''): void {
-    this.steps.push(this.fb.nonNullable.control(text, Validators.required));
+  protected addStep(text = '', timerMinutes = 0): void {
+    this.steps.push(this.createStepGroup(text, timerMinutes));
   }
 
   protected removeStep(index: number): void {
     this.steps.removeAt(index);
   }
 
+  protected isCollapsed(section: SectionId): boolean {
+    return this.collapsed().has(section);
+  }
+
+  protected toggleSection(section: SectionId): void {
+    this.setCollapsed(section, !this.isCollapsed(section));
+  }
+
+  /** Scrolls to a card, or a heading inside it, opening the card first if it is collapsed. */
+  protected goTo(section: SectionId, target: string = section): void {
+    this.setCollapsed(section, false);
+    // A collapsed card's content has no position until it is rendered again.
+    afterNextRender(
+      () =>
+        this.host.nativeElement
+          .querySelector(`#recipe-${target}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      { injector: this.injector },
+    );
+  }
+
+  protected setInsertAfter(index: number): void {
+    this.insertAfterChoice.set(index);
+  }
+
+  /** Inserts the suggested nutrient additions as steps, each with its wait as the timer. */
+  protected addSuggestedSteps(): void {
+    const suggestion = this.suggestion();
+    if (suggestion.status !== 'ok') {
+      return;
+    }
+
+    const start = this.insertAfter() + 1;
+    const total = suggestion.additions.length;
+    suggestion.additions.forEach((addition, i) => {
+      const text = this.additionStepText(addition, suggestion.nutrient, total);
+      this.steps.insert(start + i, this.createStepGroup(text, addition.waitMinutes));
+    });
+    this.insertAfterChoice.set(null);
+    this.snackBar.open(`Added ${total} nutrient steps.`, 'Dismiss', { duration: 4000 });
+  }
+
   protected submit(): void {
     if (this.form.invalid || this.submitting()) {
       this.form.markAllAsTouched();
+      this.expandInvalidSections();
       return;
     }
 
@@ -173,12 +318,68 @@ export class RecipeForm {
     });
   }
 
+  private setCollapsed(section: SectionId, collapsed: boolean): void {
+    const next = new Set(this.collapsed());
+    if (collapsed) {
+      next.add(section);
+    } else {
+      next.delete(section);
+    }
+    this.collapsed.set(next);
+  }
+
+  /** Re-opens any collapsed card that holds an invalid field, so its error can be seen. */
+  private expandInvalidSections(): void {
+    const { steps, ...general } = this.form.controls;
+    if (Object.values(general).some((control) => control.invalid)) {
+      this.setCollapsed('general', false);
+    }
+    if (steps.controls.some((step) => step.controls.text.invalid)) {
+      this.setCollapsed('steps', false);
+    }
+    if (steps.controls.some((step) => step.controls.timerValue.invalid)) {
+      this.setCollapsed('timers', false);
+    }
+  }
+
   private createIngredientGroup(value?: RecipeIngredient): IngredientGroup {
     return this.fb.group({
       name: this.fb.nonNullable.control(value?.name ?? '', Validators.required),
       category: this.fb.nonNullable.control(value?.category ?? 'Other', Validators.required),
       quantity: this.fb.nonNullable.control(value?.quantity ?? ''),
     });
+  }
+
+  private createStepGroup(text: string, timerMinutes: number): StepGroup {
+    const { value, unit } = this.splitTimer(timerMinutes);
+    return this.fb.group({
+      text: this.fb.nonNullable.control(text, Validators.required),
+      timerValue: this.fb.control<number | null>(value, Validators.min(0)),
+      timerUnit: this.fb.nonNullable.control<TimerUnit>(unit),
+    });
+  }
+
+  /** Splits stored minutes into the largest unit that divides them evenly, e.g. 1440 -> 1 day. */
+  private splitTimer(minutes: number): { value: number | null; unit: TimerUnit } {
+    if (!minutes || minutes <= 0) {
+      return { value: null, unit: 'hr' };
+    }
+    const unit =
+      [...TIMER_UNITS].reverse().find((u) => minutes % u.minutes === 0) ?? TIMER_UNITS[0];
+    return { value: minutes / unit.minutes, unit: unit.value };
+  }
+
+  private timerMinutes(value: number | null, unit: TimerUnit): number {
+    const perUnit = TIMER_UNITS.find((u) => u.value === unit)?.minutes ?? 1;
+    return value && value > 0 ? Math.round(value * perUnit) : 0;
+  }
+
+  private additionStepText(addition: NutrientAddition, nutrient: string, total: number): string {
+    const grams = addition.grams.toFixed(2);
+    const base = `Add ${grams} g ${nutrient} (addition ${addition.index} of ${total}).`;
+    return addition.triggerGravity
+      ? `${base} Add sooner if gravity reaches ${addition.triggerGravity.toFixed(3)}.`
+      : base;
   }
 
   private loadRecipe(id: string): void {
@@ -204,10 +405,13 @@ export class RecipeForm {
     const yeast = find('yeast');
 
     const { weight, unit } = this.parseWeight(honey?.quantity ?? '');
+    const batchUnit = recipe.batchSizeUnit ?? '';
 
     this.form.patchValue({
       name: recipe.name,
       description: recipe.description ?? '',
+      batchSize: recipe.batchSize || null,
+      batchSizeUnit: (BATCH_UNITS as readonly string[]).includes(batchUnit) ? batchUnit : 'gal',
       honeyType: honey?.name ?? '',
       honeyWeight: weight,
       honeyUnit: unit,
@@ -225,7 +429,7 @@ export class RecipeForm {
     this.steps.clear();
     [...recipe.steps]
       .sort((a, b) => a.order - b.order)
-      .forEach((s) => this.addStep(s.text));
+      .forEach((s) => this.addStep(s.text, s.timerMinutes));
     if (this.steps.length === 0) {
       this.addStep();
     }
@@ -263,7 +467,11 @@ export class RecipeForm {
     ];
 
     const steps: RecipeStep[] = raw.steps
-      .map((text, index) => ({ order: index + 1, text: text.trim() }))
+      .map((step, index) => ({
+        order: index + 1,
+        text: step.text.trim(),
+        timerMinutes: this.timerMinutes(step.timerValue, step.timerUnit),
+      }))
       .filter((s) => s.text.length > 0);
 
     const description = raw.description.trim();
@@ -273,6 +481,7 @@ export class RecipeForm {
       ingredients,
       steps,
       ...(description ? { description } : {}),
+      ...(raw.batchSize ? { batchSize: raw.batchSize, batchSizeUnit: raw.batchSizeUnit } : {}),
     };
   }
 

@@ -17,6 +17,8 @@ export interface RecipeIngredient {
 export interface RecipeStep {
   order: number;
   text: string;
+  /** Minutes to wait after the previous step before this one. 0 means no timer. */
+  timerMinutes: number;
 }
 
 /** Full recipe returned by GET /Recipes/{id}. */
@@ -24,6 +26,10 @@ export interface Recipe {
   id: string;
   name: string;
   description?: string;
+  /** Total must volume in `batchSizeUnit`. 0 or absent means not set. */
+  batchSize?: number;
+  /** gal | L. */
+  batchSizeUnit?: string | null;
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
   createdAt: string;
@@ -49,6 +55,8 @@ export interface RecipeSummary {
 export interface RecipeInput {
   name: string;
   description?: string;
+  batchSize?: number;
+  batchSizeUnit?: string;
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
 }

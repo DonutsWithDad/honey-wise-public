@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Xml.Serialization;
 
 namespace Mead.Tools;
@@ -31,6 +32,18 @@ public class Recipe
     /// Description
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Total volume of must the recipe makes, in <see cref="BatchSizeUnit"/>.
+    /// 0 means not set; it is then left out of the stored XML.
+    /// </summary>
+    [DefaultValue(0d)]
+    public double BatchSize { get; set; }
+
+    /// <summary>
+    /// Unit for <see cref="BatchSize"/>: gal | L.
+    /// </summary>
+    public string? BatchSizeUnit { get; set; }
 
     /// <summary>
     /// Every ingredient in the recipe, including the required Honey, Water and
@@ -94,6 +107,13 @@ public class RecipeStep
     /// Plain-text instruction for this step.
     /// </summary>
     public string Text { get; set; } = string.Empty;
+
+    /// <summary>
+    /// How long to wait after the previous step before doing this one, in
+    /// minutes. 0 means no timer; it is then left out of the stored XML.
+    /// </summary>
+    [DefaultValue(0)]
+    public int TimerMinutes { get; set; }
 }
 
 /// <summary>
