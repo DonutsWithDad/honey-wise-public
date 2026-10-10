@@ -40,7 +40,7 @@ export const routes: Routes = [
     path: 'recipes/new',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/recipes/recipe-form').then((m) => m.RecipeForm),
-    title: 'New Recipe · HoneyWise',
+    title: 'Add Recipe · HoneyWise',
   },
   {
     path: 'recipes/:id/edit',

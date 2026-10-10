@@ -38,6 +38,16 @@ internal static class RecipeValidation
             }
         }
 
+        if (recipe.BatchSize < 0)
+        {
+            return "Batch size cannot be negative. ";
+        }
+
+        if (recipe.Steps.Any(s => s.TimerMinutes < 0))
+        {
+            return "Step timers cannot be negative. ";
+        }
+
         return null;
     }
 }
