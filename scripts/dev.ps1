@@ -124,7 +124,7 @@ $api = Start-Process dotnet -ArgumentList 'run', '--project', "`"$apiProject`"",
     -NoNewWindow -PassThru
 
 try {
-    Write-Step 'Starting web app on http://localhost:4200 (demo login: demo / HoneyWise123!). Ctrl+C stops both.'
+    Write-Step 'Starting web app on http://localhost:4200 (logins: admin@admin.com / admin, demo / HoneyWise123!). Ctrl+C stops both.'
     Push-Location $webDir
     npm start
 }
