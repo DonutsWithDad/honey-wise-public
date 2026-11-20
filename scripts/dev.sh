@@ -84,6 +84,6 @@ api_pid=$!
 # 'dotnet run' launches the API as a child process, so stop the whole group.
 trap 'step "Stopping API"; pkill -P "$api_pid" 2>/dev/null; kill "$api_pid" 2>/dev/null || true' EXIT
 
-step "Starting web app on http://localhost:4200 (demo login: demo / HoneyWise123!). Ctrl+C stops both."
+step "Starting web app on http://localhost:4200 (logins: admin@admin.com / admin, demo / HoneyWise123!). Ctrl+C stops both."
 cd "$web_dir"
 npm start

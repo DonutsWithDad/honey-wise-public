@@ -37,8 +37,9 @@ The script is safe to re-run; each step skips itself when there's nothing to do.
 |---|---|
 | Web app | http://localhost:4200 |
 | API + Swagger UI | http://localhost:20000/swagger |
+| Admin login | `admin@admin.com` / `admin` |
 | Demo login | `demo` / `HoneyWise123!` |
-| Postgres (Docker) | `localhost:5433`, user `postgres`, password `honeywise-dev`, database `Mead_Tool` |
+| Postgres (Docker) | `localhost:5434`, user `postgres`, password `honeywise-dev`, database `Mead_Tool` |
 
 Pass `-SetupOnly` (PowerShell) or `--setup-only` (bash) to prepare everything without starting the apps. This is handy if you'd rather launch the API from your IDE.
 
